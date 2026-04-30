@@ -20,7 +20,6 @@ depends_on: Union[str, Sequence[str], None] = ${repr(depends_on)}
 
 def upgrade() -> None:
     ${upgrades if upgrades else "pass"}
-    op.execute('ALTER TABLE tasks ALTER COLUMN id TYPE UUID USING id::text::uuid')
 
 
 def downgrade() -> None:

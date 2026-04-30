@@ -1,8 +1,8 @@
 """Tables-1.0
 
-Revision ID: 9f1833ff7a0d
+Revision ID: 8579a1e0d32c
 Revises: 
-Create Date: 2026-04-30 21:34:04.527018
+Create Date: 2026-04-30 22:09:57.353771
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '9f1833ff7a0d'
+revision: str = '8579a1e0d32c'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -39,7 +39,7 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('users',
-    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('email', sa.String(), nullable=False),
     sa.Column('score', sa.Integer(), nullable=False),
@@ -70,16 +70,15 @@ def upgrade() -> None:
     )
     op.create_table('user_tasks',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.UUID(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('task_id', sa.Integer(), nullable=False),
-    sa.Column('current_step', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['task_id'], ['tasks.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('user_cards',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.UUID(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('cards_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['cards_id'], ['cards.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -87,14 +86,13 @@ def upgrade() -> None:
     )
     op.create_table('user_products',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.UUID(), nullable=False),
+    sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('product_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###
-    op.execute('ALTER TABLE tasks ALTER COLUMN id TYPE UUID USING id::text::uuid')
 
 
 def downgrade() -> None:
