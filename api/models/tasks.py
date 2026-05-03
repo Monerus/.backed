@@ -20,5 +20,6 @@ class UserTaskResponse(BaseModel):
     last_step: int
     completed: bool
     user_id: int
+    reward: int
     model_config = ConfigDict(from_attributes=True)
     
