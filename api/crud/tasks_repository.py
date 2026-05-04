@@ -4,16 +4,18 @@ from sqlalchemy import select, not_
 from sqlalchemy.orm import selectinload
 from fastapi import Depends, status, HTTPException, APIRouter
 from api.models import * 
-from typing import List
 from api.crud.auth_utils import *
+from api.crud.task_utils import *
 
 router = APIRouter(prefix='/tasks', tags=["Tasks"])
 
 
 # Для админа
 @router.post("/create/", response_model=TasksResponse)
-async def create_tasks(task_in: TasksCreate,
-                       session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
+async def create_task(
+    task_in: TasksBase,
+    session: AsyncSession = Depends(db_helper.scoped_session_dependency)
+):
     task = Task(**task_in.model_dump())
 
     try:
@@ -24,8 +26,9 @@ async def create_tasks(task_in: TasksCreate,
         await session.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Error: {e}")
-    
+            detail=f"Error: {e}"
+        )
+
     return task
 
 
@@ -39,12 +42,12 @@ async def get_tasks(session: AsyncSession = Depends(db_helper.scoped_session_dep
     return stmt
 
 
-@router.get("/get-tasks-me/", response_model=List[UserTaskResponse])
+
+@router.get("/get-me-tasks/", response_model=list[UserTaskResponse])
 async def get_me_tasks(
     current_user: Users = Depends(get_current_user),
     session: AsyncSession = Depends(db_helper.scoped_session_dependency)
 ):
-    # 1. Получаем все задачи и прогресс текущего юзера
     query = (
         select(Task, UserTask)
         .outerjoin(
@@ -59,42 +62,42 @@ async def get_me_tasks(
     response = []
 
     for task, user_task in rows:
-        # 2. Если записи о прогрессе нет — создаем её (Lazy Creation)
+        
         if user_task is None:
-            step = 0
-            completed = False
-        else:
-            step = user_task.step
-            completed = user_task.completed
-        # 3. Логика проверки прогресса (например, по score пользователя)
-        # Обновляем текущий шаг, если он привязан к score
-        user_task.step = current_user.score 
+            user_task = UserTask(
+                user_id=current_user.id,
+                task_id=task.id
+            )
+            session.add(user_task)  
+            await session.flush()
+
+        reset_task_if_needed(user_task)
+        user_task.step = current_user.score
 
         if not user_task.completed and user_task.step >= task.last_step:
             user_task.completed = True
 
-        if user_task.completed:
-            continue
+        response.append(UserTaskResponse(
+            id=user_task.id,
+            task_id=task.id,
+            title=task.title,
+            step=user_task.step,
+            last_step=task.last_step,
+            completed=user_task.completed,
+            reward=task.reward,
+            reward_claimed=user_task.reward_claimed
+        ))
 
-        # 5. Собираем данные для ответа (ВАЖНО: append должен быть ВНУТРИ цикла)
-        response.append({
-            "id": user_task.id,       # ID записи прогресса
-            "task_id": task.id,       # ID самой задачи
-            "user_id": current_user.id,
-            "title": task.title,
-            "step": user_task.step,
-            "last_step": task.last_step,
-            "completed": user_task.completed,
-            "reward": task.reward
-        })
-
+    await session.commit()
     return response
 
 
 @router.post("/claim-reward/{task_id}/")
-async def claim_reward(task_id: int,
-                       session: AsyncSession = Depends(db_helper.scoped_session_dependency),
-                       current_user: Users = Depends(get_current_user)):
+async def claim_reward(
+    task_id: int,
+    session: AsyncSession = Depends(db_helper.scoped_session_dependency),
+    current_user: Users = Depends(get_current_user)
+):
     
     query = (
         select(UserTask)
@@ -103,31 +106,53 @@ async def claim_reward(task_id: int,
             UserTask.task_id == task_id,
             UserTask.user_id == current_user.id
         )
+        .with_for_update()
     )
 
     result = await session.execute(query)
     user_task = result.scalar_one_or_none()
 
     if not user_task:
-       raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Задача не найдена"
+        )
+
+    reset_task_if_needed(user_task)
 
     if not user_task.completed:
-        raise HTTPException(status_code=400, detail="Task not completed")
-    
+        raise HTTPException(
+            status_code=400,
+            detail="Задача еще не выполнена"
+        )
+
     if user_task.reward_claimed:
-        raise HTTPException(status_code=400, detail="Already claimed")
+        raise HTTPException(
+            status_code=400,
+            detail="Награда уже получена"
+        )
 
-    
-    reward = user_task.task.reward
+    task_result = await session.execute(
+        select(Task).where(Task.id == task_id)
+    )
 
-    current_user.gold += reward
+    task = task_result.scalar_one()
+
+    reward_amount = task.reward
+
+    current_user.gold += reward_amount
     user_task.reward_claimed = True
 
-    await session.commit()
+    try:
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise HTTPException(500, "Ошибка базы данных")
 
     return {
         "status": "ok",
-        "gold": current_user.gold
+        "reward_received": reward_amount,
+        "current_gold": current_user.gold
     }
     
 

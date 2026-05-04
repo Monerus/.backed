@@ -1,9 +1,8 @@
 from core.models import *
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, exists, not_
+from sqlalchemy import select, exists
 from fastapi import Depends, status, HTTPException, APIRouter
 from api.models import * 
-from typing import List
 from api.crud.auth_utils import *
 
 router = APIRouter(prefix='/product', tags=["Product"])
@@ -45,25 +44,22 @@ async def create_product(product_in: ProductCreate,
 
 
 #Показывать товар по сортировке по категориям
-@router.get("/", response_model=None)
+@router.get("/", response_model=list[ProductResponse])
 async def get_products(
     category_id: int,
     session: AsyncSession = Depends(db_helper.scoped_session_dependency),
     current_user: Users = Depends(get_current_user)
 ):
-    # 1. Получаем ID всех товаров, которые этот пользователь уже купил
-    purchased_query = await session.execute(
-        select(UserProduct.product_id).where(UserProduct.user_id == current_user.id)
-    )
-    purchased_ids = purchased_query.scalars().all()
-
-    # 2. Получаем товары, которых НЕТ в списке купленных
     result = await session.execute(
-        select(Product)
-        .where(Product.category_id == category_id)
-        .where(not_(Product.id.in_(purchased_ids))) # Исключаем купленные
-        .order_by(Product.spriteIndex)
-        .limit(3)
+    select(Product)
+    .where(Product.category_id == category_id)
+    .where(
+        ~exists().where(
+            (UserProduct.user_id == current_user.id) &
+            (UserProduct.product_id == Product.id)
+        )
     )
-    
+    .order_by(Product.spriteIndex)
+    .limit(3)
+)
     return result.scalars().all()

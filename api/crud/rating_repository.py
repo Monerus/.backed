@@ -11,9 +11,12 @@ router = APIRouter(prefix='/rating', tags=["Rating"])
 # Показать рейтинг, только имя и счетчик 
 @router.get("/")
 async def get_rating_users(session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
-    result = await session.execute(select(Users.name, Users.score)
-                                   .order_by(desc(Users.score))
-                                   .limit(200))
+    
+    result = await session.execute(
+        select(Users.name, Users.score)
+        .order_by(desc(Users.score))
+        .limit(200))
+    
     stmt = result.mappings().all()
     return stmt
 
@@ -22,14 +25,15 @@ async def get_rating_users(session: AsyncSession = Depends(db_helper.scoped_sess
 async def get_my_rating(session: AsyncSession = Depends(db_helper.scoped_session_dependency),
                         current_user: Users = Depends(get_current_user)):
     
-    query_rank = select(func.count(Users.id)).where(Users.score > current_user.score)
+    query_rank = select(
+        func.count(Users.id)
+        ).where(Users.score > current_user.score)
 
     result = await session.execute(query_rank)
 
     rank = result.scalar_one() + 1
     
     return {
-        "rank": rank,
         "name": current_user.name,
         "score": current_user.score
     }
