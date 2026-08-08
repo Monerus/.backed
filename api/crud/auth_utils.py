@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.models import *
 from typing import Annotated
 from api.models import *
+import secrets
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login/")
@@ -52,8 +53,7 @@ def create_jwt(
 #create access token
 def create_access_token(user) -> str:
     jwt_payload = {
-        "id": user.id,
-        "user": user.name,
+        "id": str(user.id),
         "email": user.email
     }
     return create_jwt(
@@ -62,19 +62,34 @@ def create_access_token(user) -> str:
         expire_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
+def generate_random_code():
+    return secrets.randbits(20)
 
 #create refresh token
+# def create_refresh_token(user) -> str:
+#     jwt_payload = {
+#         "sub": str(user.id),
+#         "email": user.emil,
+#         "type": "refresh"
+#     }
+#     return create_jwt(
+#         token_type="refresh",
+#         token_data=jwt_payload,
+#         expire_timedelta=timedelta(settings.REFRESH_TOKEN_EXPIRE_DAYS),
+#         secret_key=settings.JWT_SECRET
+#     )
+
 def create_refresh_token(user) -> str:
     jwt_payload = {
-        "sub": user.id,
-        "username": user.name,
+        "id": str(user.id),       # Используем "id", чтобы совпадало с проверкой в verify_refresh_token
+        "email": user.email,      # Исправлена опечатка (emil -> email)
+        "type": "refresh"
     }
     return create_jwt(
         token_type="refresh",
         token_data=jwt_payload,
-        expire_timedelta=timedelta(settings.REFRESH_TOKEN_EXPIRE_DAYS)
+        expire_timedelta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS) # Передаем timedelta правильно
     )
-
 
 
 async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], 
@@ -90,11 +105,33 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)],
         user_id = payload.get("id")
         if user_id is None:
             raise credentials_exception
-        result = await session.execute(select(Users).where(Users.id == user_id))
+        result = await session.execute(select(User).where(User.id == user_id))
         user = result.scalars().first()
         if user is None:
          raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ошибка с пользователем")
         return user
     except:
         raise credentials_exception
-    
+
+
+def verify_refresh_token(refresh_token: str) -> str:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Недействительный refresh token",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        # Декодируем токен (используем decode_jwt, чтобы задействовать настройки по умолчанию)
+        payload = decode_jwt(refresh_token)
+        
+        # Проверяем тип токена
+        if payload.get("type") != "refresh":
+            raise credentials_exception
+            
+        user_id = payload.get("id")
+        if user_id is None:
+            raise credentials_exception
+            
+        return user_id # Возвращаем int, чтобы поиск в базе пошел корректно
+    except jwt.PyJWTError:
+        raise credentials_exception

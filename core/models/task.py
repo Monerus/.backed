@@ -18,8 +18,9 @@ class Task(Base):
     last_step: Mapped[int] = mapped_column(default=0)
     reward: Mapped[int] = mapped_column(default=0)
     task_type: Mapped[TaskType] = mapped_column(
-        Enum(TaskType), 
-        default=TaskType.PERMANENT
+        Enum(TaskType, create_type=False), 
+        default=TaskType.PERMANENT,
+        
     )
     updated_at: Mapped[datetime] = mapped_column(DateTime, 
                                                  default=datetime.utcnow, 
@@ -34,7 +35,7 @@ class UserTask(Base):
     task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id"), index=True)
 
     task: Mapped["Task"] = relationship()
-    user: Mapped["Users"] = relationship()
+    user: Mapped["User"] = relationship()
 
     step: Mapped[int] = mapped_column(default=0)
 

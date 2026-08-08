@@ -43,12 +43,19 @@ async def create_product(product_in: ProductCreate,
     return product
 
 
+@router.get("/ss")
+async def get_prod(session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
+    res = await session.execute(select(Product))
+    result = res.scalars().all()
+    return result
+
+
 #Показывать товар по сортировке по категориям
 @router.get("/", response_model=list[ProductResponse])
 async def get_products(
     category_id: int,
     session: AsyncSession = Depends(db_helper.scoped_session_dependency),
-    current_user: Users = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     result = await session.execute(
     select(Product)
@@ -60,6 +67,6 @@ async def get_products(
         )
     )
     .order_by(Product.spriteIndex)
-    .limit(3)
+    .limit(4)
 )
     return result.scalars().all()

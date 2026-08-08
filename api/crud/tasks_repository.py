@@ -45,7 +45,7 @@ async def get_tasks(session: AsyncSession = Depends(db_helper.scoped_session_dep
 
 @router.get("/get-me-tasks/", response_model=list[UserTaskResponse])
 async def get_me_tasks(
-    current_user: Users = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(db_helper.scoped_session_dependency)
 ):
     query = (
@@ -54,6 +54,9 @@ async def get_me_tasks(
             UserTask, 
             (UserTask.task_id == Task.id) & 
             (UserTask.user_id == current_user.id)
+        )
+        .where(
+            UserTask.reward_claimed == False
         )
     )
     result = await session.execute(query)
@@ -96,7 +99,7 @@ async def get_me_tasks(
 async def claim_reward(
     task_id: int,
     session: AsyncSession = Depends(db_helper.scoped_session_dependency),
-    current_user: Users = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     
     query = (

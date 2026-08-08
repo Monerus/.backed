@@ -7,7 +7,7 @@ from alembic import context
 
 from core.models import Base
 
-from core.models import Users
+from core.models import User
 
 from core.config import settings
 

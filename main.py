@@ -7,7 +7,9 @@ from api.crud.cards_repository import router as cards_router
 from api.crud.exchange_repository import router as exchange_router
 from api.crud.rating_repository import router as rating_router
 from api.crud.tasks_repository import router as tasks_router
+from api.crud.coin_repository import router as coin_router
 from fastapi.middleware.cors import CORSMiddleware
+from api.crud.equipment_repository import router as equipment_router
 
 app = FastAPI()
 
@@ -28,6 +30,9 @@ app.include_router(cards_router)
 app.include_router(exchange_router)
 app.include_router(rating_router)
 app.include_router(tasks_router)
+app.include_router(coin_router)
+app.include_router(equipment_router)
+
 
 if __name__ == "__main__":
     uvicorn.run("main:app") 

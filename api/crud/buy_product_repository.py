@@ -14,7 +14,7 @@ async def buy_product(
     category_id: int,
     sprite_index: int,
     session: AsyncSession = Depends(db_helper.scoped_session_dependency),
-    current_user: Users = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     result = await session.execute(
         select(Product).where(
@@ -70,7 +70,7 @@ async def buy_product(
 @router.get("/inventory/{category_id}/")
 async def get_inventory(
     category_id: int,
-    current_user: Users = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(db_helper.scoped_session_dependency)
 ):
     result = await session.execute(

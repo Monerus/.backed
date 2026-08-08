@@ -1,8 +1,8 @@
-"""Tables-1.0
+"""Tables-1.1
 
-Revision ID: dbd12537109a
+Revision ID: c6cceb0eef36
 Revises: 
-Create Date: 2026-05-04 18:31:25.679736
+Create Date: 2026-07-20 14:36:26.058516
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'dbd12537109a'
+revision: str = 'c6cceb0eef36'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -23,6 +23,14 @@ def upgrade() -> None:
     op.create_table('categories',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('coin',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('gold', sa.Integer(), nullable=True),
+    sa.Column('diamond', sa.Integer(), nullable=True),
+    sa.Column('updated_at', sa.DateTime(), nullable=False),
+    sa.Column('level', sa.Integer(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('set_cards',
@@ -36,14 +44,15 @@ def upgrade() -> None:
     sa.Column('title', sa.String(), nullable=False),
     sa.Column('last_step', sa.Integer(), nullable=False),
     sa.Column('reward', sa.Integer(), nullable=False),
-    sa.Column('task_type', sa.Enum('PERMANENT', 'DAILY', 'WEEKLY', name='tasktype'), nullable=False),
+    sa.Column('task_type', sa.String(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('users',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(), nullable=False),
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('code', sa.Integer(), nullable=False),
     sa.Column('email', sa.String(), nullable=False),
+    sa.Column('code_expires_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('score', sa.Integer(), nullable=False),
     sa.Column('diamond', sa.Integer(), nullable=False),
     sa.Column('gold', sa.Integer(), nullable=False),
@@ -67,12 +76,26 @@ def upgrade() -> None:
     sa.Column('damage', sa.Integer(), nullable=False),
     sa.Column('category_id', sa.Integer(), nullable=False),
     sa.Column('spriteIndex', sa.Integer(), nullable=False),
+    sa.Column('spriteCategory', sa.String(), nullable=False),
+    sa.Column('spriteLabel', sa.String(), nullable=False),
     sa.ForeignKeyConstraint(['category_id'], ['categories.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('user_coin',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.UUID(), nullable=False),
+    sa.Column('coin_id', sa.Integer(), nullable=False),
+    sa.Column('is_opened', sa.Boolean(), nullable=False),
+    sa.Column('opened_at', sa.DateTime(), nullable=True),
+    sa.ForeignKeyConstraint(['coin_id'], ['coin.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_user_coin_coin_id'), 'user_coin', ['coin_id'], unique=False)
+    op.create_index(op.f('ix_user_coin_user_id'), 'user_coin', ['user_id'], unique=False)
     op.create_table('user_tasks',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('task_id', sa.Integer(), nullable=False),
     sa.Column('step', sa.Integer(), nullable=False),
     sa.Column('completed', sa.Boolean(), nullable=False),
@@ -86,7 +109,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_user_tasks_user_id'), 'user_tasks', ['user_id'], unique=False)
     op.create_table('user_cards',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('cards_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['cards_id'], ['cards.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -94,7 +117,7 @@ def upgrade() -> None:
     )
     op.create_table('user_products',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('user_id', sa.UUID(), nullable=False),
     sa.Column('product_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
@@ -111,11 +134,16 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_user_tasks_user_id'), table_name='user_tasks')
     op.drop_index(op.f('ix_user_tasks_task_id'), table_name='user_tasks')
     op.drop_table('user_tasks')
+    op.drop_index(op.f('ix_user_coin_user_id'), table_name='user_coin')
+    op.drop_index(op.f('ix_user_coin_coin_id'), table_name='user_coin')
+    op.drop_table('user_coin')
     op.drop_table('product')
     op.drop_table('cards')
     op.drop_index(op.f('ix_users_score'), table_name='users')
     op.drop_table('users')
     op.drop_table('tasks')
     op.drop_table('set_cards')
+    op.drop_table('coin')
     op.drop_table('categories')
+    
     # ### end Alembic commands ###

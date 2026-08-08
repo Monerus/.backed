@@ -7,6 +7,8 @@ class ProductBase(BaseModel):
     damage: int
     category_id: int
     spriteIndex: int
+    spriteCategory: str
+    spriteLabel: str
 
 class ProductCreate(ProductBase):
     pass 

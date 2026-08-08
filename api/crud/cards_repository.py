@@ -64,7 +64,7 @@ async def get_cards(session: AsyncSession = Depends(db_helper.scoped_session_dep
 async def buy_cards(
     card_id: int,
     session: AsyncSession = Depends(db_helper.scoped_session_dependency),
-    current_user: Users = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     # Получаем карточку
     result = await session.execute(

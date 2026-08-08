@@ -1,6 +1,6 @@
 all = [
     "Base", 
-    "Users",
+    "User",
     "db_helper",
     "Product",
     "Category",
@@ -8,12 +8,16 @@ all = [
     "SetCards",
     "Cards",
     "CardExchange",
-    "Tasks"
+    "Tasks",
+    "Coin",
+    "Weapon"
 ]
 
 from .base import Base
-from .users import Users
+from .users import *
 from .utils import db_helper
 from .product import *
 from .cards import *
 from .task import *
+from .coin import *
+from .weapon import *

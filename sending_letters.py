@@ -1,17 +1,28 @@
-import smtplib 
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-
-sender_email = "monerus2020@gmail.com"
-app_password = "vxej kyzc fbmg jkrd"
-receiver_email = "recipient@example.com"
+from aiosmtplib import SMTP
+from email.message import EmailMessage
+from core.config import settings
 
 
-message = MIMEMultipart()
-message["FROM"] = sender_email
-message["TO"] = receiver_email
-message["Subject"] = "Тестовое письмо через Gmail SMTP"
+async def send_email_code(email: str, code: int):
+    message = EmailMessage()
+    message["From"] = settings.SMTP_FROM
+    message["To"] = email
+    message["Subject"] = "Ваш код подтверждения"
+    message.set_content(f"Ваш код для входа: {code}. Он действителен 3 минуты.")
 
 
-body = "Hello! you code: .."
-message.attach(MIMEText(body, "plain"))
+    smtp = SMTP(
+    hostname=settings.SMTP_HOST,
+    port=settings.SMTP_PORT,
+    use_tls=True,
+
+)
+
+    await smtp.connect()
+    print("connected")
+
+    await smtp.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
+    print("logged in")
+
+    await smtp.send_message(message)
+    await smtp.quit()

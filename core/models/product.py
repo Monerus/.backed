@@ -9,9 +9,11 @@ class Product(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     image_url: Mapped[str]
     price: Mapped[int]
-    damage: Mapped[int]
+    damage: Mapped[int] #Исправить
     category_id: Mapped[int] = mapped_column(ForeignKey("categories.id"))
     spriteIndex: Mapped[int] = mapped_column(default=0)
+    spriteCategory: Mapped[str]
+    spriteLabel: Mapped[str]
 
 
 # Категории к товарам.

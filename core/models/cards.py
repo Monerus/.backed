@@ -28,23 +28,4 @@ class UserCards(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     cards_id: Mapped[int] = mapped_column(ForeignKey("cards.id"))
 
-
-# class ExchangeStatus(enum.Enum):
-#     pending = "pending"
-#     accepted = "accepted"
-#     declined = "declined"
-
-# # Обмен карточками между пользователями.
-# class CardExchange(Base):
-#     __tablename__ = "card_exchange"
-    
-#     id: Mapped[int] = mapped_column(primary_key=True)
-
-#     sender_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-#     recipient_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-
-#     sender_card_id: Mapped[int] = mapped_column(ForeignKey("cards.id"))
-#     recipient_card_id: Mapped[int] = mapped_column(ForeignKey("cards.id"))
-
-#     status: Mapped[ExchangeStatus]
     
