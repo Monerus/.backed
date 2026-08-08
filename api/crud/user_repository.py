@@ -34,7 +34,6 @@ async def create_code(
         )
         session.add(user)
 
-    # 1. Сначала делаем flush, чтобы БД сгенерировала user.id для нового пользователя
     try:
         await session.flush()
     except Exception as e:
@@ -44,7 +43,6 @@ async def create_code(
             detail=f"Ошибка при создании/обновлении пользователя: {e}"
         )
 
-    # 2. Проверяем и создаем стартовый набор, когда user.id уже точно есть
     result_equipment = await session.execute(
         select(Equipment).where(Equipment.user_id == user.id)
     )
@@ -58,10 +56,8 @@ async def create_code(
         ]
         session.add_all(starter_items)
 
-    # 3. Добавляем отправку письма в фоновые задачи
     background_tasks.add_task(send_email_code, user.email, user.code)
 
-    # 4. Единый commit для всех изменений (пользователь, код, экипировка)
     try:
         await session.commit()
         await session.refresh(user)
@@ -102,13 +98,11 @@ async def login(
 
 @router.post("/refresh")
 async def refresh_token(
-    body: RefreshTokenSchema, # Схема, ожидающая {"refresh_token": "..."}
+    body: RefreshTokenSchema,
     session: AsyncSession = Depends(db_helper.scoped_session_dependency)
 ):
-    # 1. Проверяем валидность refresh-токена и сразу получаем user_id (строку UUID)
     user_id_str = verify_refresh_token(body.refresh_token)
-    
-    # 2. Превращаем строковый UUID в объект UUID для корректного поиска в базе данных
+
     try:
         user_uuid = UUID(user_id_str)
     except ValueError:
@@ -124,9 +118,7 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Пользователь не найден"
         )
-        
-    # 4. Генерируем новый access-токен, используя вашу функцию create_access_token(user)
-    # Обратите внимание: ваша функция create_access_token принимает целиком объект user
+
     new_access_token = create_access_token(user)
     
     return {

@@ -81,14 +81,14 @@ def generate_random_code():
 
 def create_refresh_token(user) -> str:
     jwt_payload = {
-        "id": str(user.id),       # Используем "id", чтобы совпадало с проверкой в verify_refresh_token
-        "email": user.email,      # Исправлена опечатка (emil -> email)
+        "id": str(user.id),       
+        "email": user.email,     
         "type": "refresh"
     }
     return create_jwt(
         token_type="refresh",
         token_data=jwt_payload,
-        expire_timedelta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS) # Передаем timedelta правильно
+        expire_timedelta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
     )
 
 
